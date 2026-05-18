@@ -161,7 +161,7 @@ const styles = StyleSheet.create({
   wrapper: { flex: 1, backgroundColor: '#0F111A' },
   container: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   content: { width: '100%', maxWidth: 360, paddingHorizontal: 24, alignItems: 'center', zIndex: 10 },
-  decorator: { position: 'absolute', borderRadius: 999, opacity: 0.12 },
+  decorator: { position: 'absolute', borderRadius: 999, opacity: 0.12, zIndex: 0, pointerEvents: 'none' },
   dec1: { width: width * 0.9, height: width * 0.9, backgroundColor: '#10B981', top: -100, right: -80 },
   dec2: { width: width * 0.7, height: width * 0.7, backgroundColor: '#EC4899', bottom: -80, left: -50 },
 
