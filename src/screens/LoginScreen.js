@@ -15,11 +15,12 @@ const CustomAppLogo = () => (
 );
 
 // M2 PR-01 (feat/ui-login)
-// Google Sign-In button UI only — auth wiring: M4 PR-02 (feat/auth-google-oauth)
+// Google Sign-In button UI only — temporary routing added for PR-02 UI testing
 export default function LoginScreen({ navigation }) {
   const handleGoogleSignIn = () => {
-    // TODO: M4 PR-02 — supabase.auth.signInWithOAuth({ provider: 'google' })
     console.log('Google Sign-In pressed');
+    // Temporarily routing to Nickname screen for UI verification
+    navigation.navigate('Nickname');
   };
 
   return (

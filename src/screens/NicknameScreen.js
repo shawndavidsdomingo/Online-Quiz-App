@@ -14,13 +14,23 @@ import {
 
 const { width } = Dimensions.get('window');
 
+// Reusable Custom Geometric Logo System matching LoginScreen
+const CustomAppLogo = () => (
+  <View style={styles.logoContainer}>
+    <View style={[styles.logoCard, styles.logoCardBack]} />
+    <View style={[styles.logoCard, styles.logoCardMiddle]} />
+    <View style={[styles.logoCard, styles.logoCardFront]}>
+      <View style={styles.logoInnerDot} />
+    </View>
+  </View>
+);
+
 export default function NicknameScreen({ navigation }) {
   const [nickname, setNickname] = useState('');
   const [error, setError] = useState('');
   const [isFocused, setIsFocused] = useState(false);
 
   const handleSave = () => {
-    // UI Validation
     const trimmedName = nickname.trim();
     
     if (trimmedName.length < 2) {
@@ -35,18 +45,14 @@ export default function NicknameScreen({ navigation }) {
 
     setError('');
     Keyboard.dismiss();
-    
-    // TODO: M4/M5 - Supabase profile update logic goes here
     console.log('Valid nickname saved:', trimmedName);
-    
-    // Mock navigation to Dashboard (PR-03)
-    // navigation.navigate('DashboardScreen');
   };
 
   return (
     <KeyboardAvoidingView 
-      style={{ flex: 1 }} 
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      // FIX: Setting background color here guarantees no whitespace leaks when view shifts
+      style={styles.avoidingWrapper} 
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <View style={styles.container}>
@@ -57,11 +63,9 @@ export default function NicknameScreen({ navigation }) {
 
           <View style={styles.mainContent}>
             
-            {/* Header / Avatar Placeholder */}
+            {/* Header Section with Identity Logo */}
             <View style={styles.headerSection}>
-              <View style={styles.avatarPlaceholder}>
-                <Text style={styles.avatarEmoji}>👾</Text>
-              </View>
+              <CustomAppLogo />
               <Text style={styles.title}>Claim Your Name</Text>
               <Text style={styles.subtitle}>What should we call you on the leaderboard?</Text>
             </View>
@@ -81,7 +85,7 @@ export default function NicknameScreen({ navigation }) {
                   value={nickname}
                   onChangeText={(text) => {
                     setNickname(text);
-                    if (error) setError(''); // Clear error on typing
+                    if (error) setError('');
                   }}
                   onFocus={() => setIsFocused(true)}
                   onBlur={() => setIsFocused(false)}
@@ -90,7 +94,6 @@ export default function NicknameScreen({ navigation }) {
                   autoCapitalize="none"
                 />
                 
-                {/* Dynamic Error Message Space */}
                 <Text style={styles.errorText}>{error ? error : ' '}</Text>
               </View>
 
@@ -120,9 +123,12 @@ export default function NicknameScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
+  avoidingWrapper: {
+    flex: 1,
+    backgroundColor: '#0F111A', // Locked base background color
+  },
   container: {
     flex: 1,
-    backgroundColor: '#0F111A', // Matches LoginScreen Midnight base
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -143,42 +149,67 @@ const styles = StyleSheet.create({
   decorator1: {
     width: width * 0.9,
     height: width * 0.9,
-    backgroundColor: '#10B981', // Emerald top-right this time
+    backgroundColor: '#10B981',
     top: -100,
     right: -80,
   },
   decorator2: {
     width: width * 0.7,
     height: width * 0.7,
-    backgroundColor: '#EC4899', // Playful Pink bottom-left
+    backgroundColor: '#EC4899',
     bottom: -80,
     left: -50,
+  },
+
+  // --- CUSTOM GEOMETRIC LOGO SYSTEM ---
+  logoContainer: {
+    width: 100,
+    height: 85,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  logoCard: {
+    position: 'absolute',
+    width: 50,
+    height: 64,
+    borderRadius: 14,
+    borderWidth: 2,
+  },
+  logoCardBack: {
+    backgroundColor: '#312E81',
+    borderColor: '#4338CA',
+    transform: [{ rotate: '-15deg' }, { translateX: -12 }],
+    opacity: 0.5,
+  },
+  logoCardMiddle: {
+    backgroundColor: '#1E1B4B',
+    borderColor: '#4F46E5',
+    transform: [{ rotate: '8deg' }, { translateX: 8 }, { translateY: -4 }],
+    opacity: 0.8,
+  },
+  logoCardFront: {
+    backgroundColor: '#6366F1', 
+    borderColor: '#818CF8',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#6366F1',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  logoInnerDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#FFFFFF',
   },
 
   // --- HEADER ---
   headerSection: {
     alignItems: 'center',
     marginBottom: 32,
-  },
-  avatarPlaceholder: {
-    width: 80,
-    height: 80,
-    backgroundColor: '#1E1B4B',
-    borderRadius: 40,
-    borderWidth: 3,
-    borderColor: '#6366F1',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
-    shadowColor: '#6366F1',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 5,
-  },
-  avatarEmoji: {
-    fontSize: 40,
-    marginLeft: 4, // Visual center adjustment for some emojis
   },
   title: {
     fontSize: 28,
@@ -197,7 +228,7 @@ const styles = StyleSheet.create({
   // --- INTERACTION CARD ---
   interactionCard: {
     width: '100%',
-    backgroundColor: '#161925', // Matches LoginScreen Card
+    backgroundColor: '#161925',
     borderRadius: 24,
     paddingVertical: 28,
     paddingHorizontal: 20,
@@ -228,11 +259,11 @@ const styles = StyleSheet.create({
     borderColor: '#2D3142',
   },
   textInputFocused: {
-    borderColor: '#6366F1', // Indigo glow on focus
+    borderColor: '#6366F1',
     backgroundColor: '#131521',
   },
   textInputError: {
-    borderColor: '#EF4444', // Red border on error
+    borderColor: '#EF4444',
   },
   errorText: {
     color: '#EF4444',
@@ -240,17 +271,16 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginTop: 8,
     marginLeft: 8,
-    minHeight: 18, // Prevents layout shift when error appears
+    minHeight: 18,
   },
 
   // --- PRIMARY BUTTON ---
   primaryButton: {
-    backgroundColor: '#6366F1', // Primary Indigo
+    backgroundColor: '#6366F1',
     borderRadius: 16,
     paddingVertical: 16,
     width: '100%',
     alignItems: 'center',
-    // Tactile baseline matching the Google button but colorful
     borderBottomWidth: 4,
     borderBottomColor: '#4338CA', 
   },
@@ -265,7 +295,7 @@ const styles = StyleSheet.create({
   ruleContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(55, 65, 81, 0.4)', // Subtle gray pill
+    backgroundColor: 'rgba(55, 65, 81, 0.4)',
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 12,
@@ -284,7 +314,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   ruleHighlight: {
-    color: '#F59E0B', // Amber highlight
+    color: '#F59E0B',
     fontWeight: '700',
   },
 });
