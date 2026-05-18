@@ -21,7 +21,6 @@ export default {
     extra: {
       supabaseUrl: process.env.SUPABASE_URL,
       supabaseAnonKey: process.env.SUPABASE_ANON_KEY,
-      anthropicApiKey: process.env.ANTHROPIC_API_KEY,
     },
     scheme: 'quiz-app',
   },
