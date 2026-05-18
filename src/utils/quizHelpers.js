@@ -27,8 +27,8 @@ export function checkAnswer(userAnswer, correctAnswer) {
 
 /**
  * computeScore
- * Counts correct answers. Hint usage deducts 0.5 per question.
- * @param {Array<{ correct: boolean, hintUsed: boolean }>} results
+ * Counts correct answers out of total questions.
+ * @param {Array<{ correct: boolean }>} results
  * @returns {number}
  */
 export function computeScore(results) {

@@ -69,6 +69,7 @@ function RootNavigator() {
 
   return (
     <NavigationContainer>
+      {/* Back to the normal flow! */}
       {session ? <AppTabs /> : <AuthStack />}
     </NavigationContainer>
   );
