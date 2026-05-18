@@ -1,4 +1,18 @@
-import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import React from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Image } from 'react-native';
+
+const { width } = Dimensions.get('window');
+
+// Custom Geometric Logo: Layered quiz cards / knowledge fragments
+const CustomAppLogo = () => (
+  <View style={styles.logoContainer}>
+    <View style={[styles.logoCard, styles.logoCardBack]} />
+    <View style={[styles.logoCard, styles.logoCardMiddle]} />
+    <View style={[styles.logoCard, styles.logoCardFront]}>
+      <View style={styles.logoInnerDot} />
+    </View>
+  </View>
+);
 
 // M2 PR-01 (feat/ui-login)
 // Google Sign-In button UI only — auth wiring: M4 PR-02 (feat/auth-google-oauth)
@@ -10,38 +24,45 @@ export default function LoginScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
+      {/* Playful Background Decorative Shapes */}
+      <View style={[styles.decoratorCircle, styles.decorator1]} />
+      <View style={[styles.decoratorCircle, styles.decorator2]} />
+      <View style={[styles.decoratorCircle, styles.decorator3]} />
 
-      {/* Logo + App Name */}
-      <View style={styles.header}>
-        <View style={styles.logoBox}>
-          <Text style={styles.logoEmoji}>🎯</Text>
+      <View style={styles.mainContent}>
+        
+        {/* Branding Header */}
+        <View style={styles.headerSection}>
+          <CustomAppLogo />
+          <Text style={styles.brandName}>QuizApp</Text>
+          <Text style={styles.brandTagline}>Master new topics, one challenge at a time.</Text>
         </View>
-        <Text style={styles.appName}>QuizApp</Text>
-        <Text style={styles.tagline}>Test your knowledge. Challenge yourself.</Text>
+
+        {/* Interaction Card */}
+        <View style={styles.authCard}>
+          <Text style={styles.welcomeText}>Welcome</Text>
+          <Text style={styles.subText}>Sign in to save your progress and compete on the leaderboard.</Text>
+
+          {/* Authentic, Production-Grade Google Button */}
+          <TouchableOpacity
+            style={styles.googleButton}
+            onPress={handleGoogleSignIn}
+            activeOpacity={0.85}
+          >
+            {/* Official Google G Icon Asset */}
+            <Image 
+              source={{ uri: 'https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg' }} 
+              style={styles.googleIcon}
+              // Note: Once you download a local google icon to your assets folder, swap uri for:
+              // source={require('../assets/google-icon.png')}
+            />
+            <Text style={styles.googleButtonText}>Continue with Google</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Minimalist Footnote */}
+        <Text style={styles.footerNote}>Secure authentication powered by Google</Text>
       </View>
-
-      {/* Sign In Card */}
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Welcome</Text>
-        <Text style={styles.cardSub}>Sign in to start playing</Text>
-
-        {/* Google Button */}
-        <TouchableOpacity
-          style={styles.googleButton}
-          onPress={handleGoogleSignIn}
-          activeOpacity={0.85}
-        >
-          <View style={styles.googleIconBox}>
-            <Text style={styles.googleIconText}>G</Text>
-          </View>
-          <Text style={styles.googleButtonText}>Continue with Google</Text>
-        </TouchableOpacity>
-
-        <Text style={styles.note}>
-          Only Google Sign-In is supported.
-        </Text>
-      </View>
-
     </View>
   );
 }
@@ -49,117 +70,174 @@ export default function LoginScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#0F111A', // Midnight base
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 24,
+  },
+  mainContent: {
+    width: '100%',
+    maxWidth: 360,
+    paddingHorizontal: 24,
+    alignItems: 'center',
+    zIndex: 10,
   },
 
-  // Header
-  header: {
-    alignItems: 'center',
-    marginBottom: 48,
+  // --- PLAYFUL BACKGROUND CIRCLES ---
+  decoratorCircle: {
+    position: 'absolute',
+    borderRadius: 999,
+    opacity: 0.12,
   },
-  logoBox: {
-    width: 80,
-    height: 80,
-    borderRadius: 24,
-    backgroundColor: '#1E3A8A',
-    alignItems: 'center',
+  decorator1: {
+    width: width * 0.8,
+    height: width * 0.8,
+    backgroundColor: '#6366F1', // Playful Indigo
+    top: -80,
+    left: -60,
+  },
+  decorator2: {
+    width: width * 0.6,
+    height: width * 0.6,
+    backgroundColor: '#F59E0B', // Vibrant Amber
+    bottom: -60,
+    right: -40,
+  },
+  decorator3: {
+    width: 120,
+    height: 120,
+    backgroundColor: '#10B981', // Emerald pop
+    top: '35%',
+    right: -30,
+  },
+
+  // --- CUSTOM GEOMETRIC LOGO SYSTEM ---
+  logoContainer: {
+    width: 100,
+    height: 85,
     justifyContent: 'center',
-    marginBottom: 16,
-    shadowColor: '#3B82F6',
-    shadowOffset: { width: 0, height: 8 },
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  logoCard: {
+    position: 'absolute',
+    width: 50,
+    height: 64,
+    borderRadius: 14,
+    borderWidth: 2,
+  },
+  logoCardBack: {
+    backgroundColor: '#312E81',
+    borderColor: '#4338CA',
+    transform: [{ rotate: '-15deg' }, { translateX: -12 }],
+    opacity: 0.5,
+  },
+  logoCardMiddle: {
+    backgroundColor: '#1E1B4B',
+    borderColor: '#4F46E5',
+    transform: [{ rotate: '8deg' }, { translateX: 8 }, { translateY: -4 }],
+    opacity: 0.8,
+  },
+  logoCardFront: {
+    backgroundColor: '#6366F1', 
+    borderColor: '#818CF8',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#6366F1',
+    shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.4,
-    shadowRadius: 16,
-    elevation: 10,
+    shadowRadius: 12,
+    elevation: 6,
   },
-  logoEmoji: {
-    fontSize: 40,
+  logoInnerDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#FFFFFF',
   },
-  appName: {
+
+  // --- BRAND TYPOGRAPHY ---
+  headerSection: {
+    alignItems: 'center',
+    marginBottom: 40,
+  },
+  brandName: {
     fontSize: 36,
-    fontWeight: '800',
-    color: '#F8FAFC',
-    letterSpacing: -1,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    letterSpacing: -0.5,
     marginBottom: 8,
   },
-  tagline: {
+  brandTagline: {
     fontSize: 15,
-    color: '#64748B',
+    fontWeight: '500',
+    color: '#9CA3AF',
     textAlign: 'center',
+    paddingHorizontal: 16,
   },
 
-  // Card
-  card: {
+  // --- CARD LAYOUT ---
+  authCard: {
     width: '100%',
-    maxWidth: 400,
-    backgroundColor: '#1E293B',
-    borderRadius: 24,
-    padding: 32,
+    backgroundColor: '#161925',
+    borderRadius: 28,
+    paddingVertical: 36,
+    paddingHorizontal: 24,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#222533',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 24,
-    elevation: 8,
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    elevation: 4,
   },
-  cardTitle: {
+  welcomeText: {
     fontSize: 24,
-    fontWeight: '700',
-    color: '#F1F5F9',
-    marginBottom: 6,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    marginBottom: 8,
   },
-  cardSub: {
+  subText: {
     fontSize: 14,
-    color: '#94A3B8',
+    color: '#9CA3AF',
+    textAlign: 'center',
+    lineHeight: 20,
     marginBottom: 32,
   },
 
-  // Google Button
+  // --- REAL GOOGLE BUTTON ---
   googleButton: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    borderRadius: 14,
+    borderRadius: 16,
     paddingVertical: 14,
-    paddingHorizontal: 24,
+    paddingHorizontal: 20,
     width: '100%',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 4,
+    // Subtle tactile baseline
+    borderBottomWidth: 3,
+    borderBottomColor: '#E5E7EB',
   },
-  googleIconBox: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: '#4285F4',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  googleIconText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '700',
+  googleIcon: {
+    width: 22,
+    height: 22,
+    resizeMode: 'contain',
   },
   googleButtonText: {
     color: '#1F2937',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
     flex: 1,
     textAlign: 'center',
+    marginRight: 22, // Keeps text flawlessly balanced opposite the icon width
   },
 
-  // Note
-  note: {
-    marginTop: 20,
+  // --- FOOTER ---
+  footerNote: {
+    marginTop: 28,
     fontSize: 12,
-    color: '#475569',
-    textAlign: 'center',
+    fontWeight: '600',
+    color: '#4B5563',
+    letterSpacing: 0.3,
   },
 });
