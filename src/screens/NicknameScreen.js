@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { supabase } from '../services/supabase';
+import { useAuth } from '../contexts/AuthContext';
 import { 
   View, 
   Text, 
@@ -29,27 +31,56 @@ export default function NicknameScreen({ navigation }) {
   const [nickname, setNickname] = useState('');
   const [error, setError] = useState('');
   const [isFocused, setIsFocused] = useState(false);
+  const { session } = useAuth();  
+  const handleSave = async () => {
+  const trimmedName = nickname.trim();
 
-  const handleSave = () => {
-    const trimmedName = nickname.trim();
-    
-    if (trimmedName.length < 2) {
-      setError('Nickname must be at least 2 characters.');
+  if (trimmedName.length < 2) {
+    setError('Nickname must be at least 2 characters.');
+    return;
+  }
+
+  if (trimmedName.length > 20) {
+    setError('Nickname cannot exceed 20 characters.');
+    return;
+  }
+
+  setError('');
+  Keyboard.dismiss();
+
+  // Check 30-day rule
+  const { data: existing } = await supabase
+    .from('profiles')
+    .select('nickname_updated_at')
+    .eq('id', session.user.id)
+    .single();
+
+  if (existing?.nickname_updated_at) {
+    const lastUpdated = new Date(existing.nickname_updated_at);
+    const daysSince = (Date.now() - lastUpdated) / (1000 * 60 * 60 * 24);
+    if (daysSince < 30) {
+      setError('You can only change your nickname once every 30 days.');
       return;
     }
-    
-    if (trimmedName.length > 20) {
-      setError('Nickname cannot exceed 20 characters.');
-      return;
-    }
+  }
 
-    setError('');
-    Keyboard.dismiss();
-    console.log('Valid nickname saved:', trimmedName);
-    
-    // Pass the nickname as a route param!
-    navigation.navigate('Dashboard', { nickname: trimmedName }); 
-  };
+  // Upsert profile
+  const { error: upsertError } = await supabase
+    .from('profiles')
+    .upsert({
+      id: session.user.id,
+      email: session.user.email,
+      nickname: trimmedName,
+      nickname_updated_at: new Date().toISOString(),
+    });
+
+  if (upsertError) {
+    setError('Failed to save nickname. Please try again.');
+    return;
+  }
+
+  navigation.navigate('Dashboard', { nickname: trimmedName });
+};
 
   return (
     <KeyboardAvoidingView 
