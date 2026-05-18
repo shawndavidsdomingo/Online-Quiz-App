@@ -1,5 +1,4 @@
-import { useEffect } from 'react';
-import { ActivityIndicator, View, StyleSheet } from 'react-native';
+import { ActivityIndicator, View, StyleSheet, Text } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -20,20 +19,18 @@ const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 
 // ─── Auth Stack ───────────────────────────────────────────────
-// Shown when user is NOT logged in
 function AuthStack() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="Nickname" component={NicknameScreen} />
-      {/* ⚠️ TEMPORARY FOR PR-03: Register Dashboard here so Nickname can navigate to it */}
+      {/* ⚠️ TEMPORARY: lets Nickname navigate to Dashboard for UI testing */}
       <Stack.Screen name="Dashboard" component={DashboardScreen} />
     </Stack.Navigator>
   );
 }
 
 // ─── Quiz Stack ───────────────────────────────────────────────
-// Nested inside the Quiz tab
 function QuizStack() {
   return (
     <Stack.Navigator>
@@ -45,7 +42,6 @@ function QuizStack() {
 }
 
 // ─── App Tabs ─────────────────────────────────────────────────
-// Shown when user IS logged in
 function AppTabs() {
   return (
     <Tab.Navigator>
@@ -57,21 +53,20 @@ function AppTabs() {
 }
 
 // ─── Root Navigator ───────────────────────────────────────────
-// Conditionally renders AuthStack or AppTabs based on session
 function RootNavigator() {
-  const { session, loading } = useAuth();
+  const { session, currentUser, profile, loading } = useAuth();
 
   if (loading) {
     return (
       <View style={styles.loading}>
-        <ActivityIndicator size="large" color="#1E3A8A" />
+        <ActivityIndicator size="large" color="#6366F1" />
+        <Text style={styles.loadingText}>Loading...</Text>
       </View>
     );
   }
 
   return (
     <NavigationContainer>
-      {/* Back to the normal flow! */}
       {session ? <AppTabs /> : <AuthStack />}
     </NavigationContainer>
   );
@@ -93,6 +88,12 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F0F4FF',
+    backgroundColor: '#0F111A',
+    gap: 12,
+  },
+  loadingText: {
+    color: '#6366F1',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
