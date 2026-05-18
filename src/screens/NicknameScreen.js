@@ -46,6 +46,9 @@ export default function NicknameScreen({ navigation }) {
     setError('');
     Keyboard.dismiss();
     console.log('Valid nickname saved:', trimmedName);
+    
+    // Pass the nickname as a route param!
+    navigation.navigate('Dashboard', { nickname: trimmedName }); 
   };
 
   return (

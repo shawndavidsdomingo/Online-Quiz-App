@@ -26,6 +26,8 @@ function AuthStack() {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="Nickname" component={NicknameScreen} />
+      {/* ⚠️ TEMPORARY FOR PR-03: Register Dashboard here so Nickname can navigate to it */}
+      <Stack.Screen name="Dashboard" component={DashboardScreen} />
     </Stack.Navigator>
   );
 }
