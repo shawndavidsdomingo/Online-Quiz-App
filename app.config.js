@@ -3,7 +3,7 @@ import 'dotenv/config';
 export default {
   expo: {
     name: 'Quiz App',
-    slug: 'quiz-app',
+    slug: 'group2-online-quiz-app',
     version: '1.0.0',
     orientation: 'portrait',
     userInterfaceStyle: 'light',
