@@ -28,6 +28,7 @@ export default function LoginScreen() {
       setLoading(true);
 
       if (Platform.OS === 'web') {
+        // Web: simple redirect, Supabase handles everything
         const { error } = await supabase.auth.signInWithOAuth({
           provider: 'google',
           options: { redirectTo: window.location.origin },
@@ -36,32 +37,58 @@ export default function LoginScreen() {
         return;
       }
 
-      // Mobile: open browser, catch redirect
-      const redirectTo = Linking.createURL(''); // ← fixed: no slash
-      console.log('redirectTo:', redirectTo);
+      // Mobile: use Expo AuthSession
+      const redirectTo = Linking.createURL('auth/callback');
+      console.log('Mobile redirectTo:', redirectTo);
 
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
-        options: { redirectTo, skipBrowserRedirect: true },
+        options: {
+          redirectTo,
+          skipBrowserRedirect: true,
+        },
       });
+
       if (error) throw error;
+      if (!data?.url) throw new Error('No auth URL');
 
-      const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
-      console.log('result:', JSON.stringify(result));
+      // Open in browser and wait for redirect
+      const result = await WebBrowser.openAuthSessionAsync(
+        data.url,
+        redirectTo,
+        { showInRecents: true }
+      );
 
-      if (result.type === 'success') {
+      console.log('Browser result:', result.type);
+
+      if (result.type === 'success' && result.url) {
+        // Parse tokens from redirect URL
         const url = result.url;
-        const hash = url.split('#')[1] ?? url.split('?')[1] ?? '';
-        const p = new URLSearchParams(hash);
-        const access_token  = p.get('access_token');
-        const refresh_token = p.get('refresh_token');
-        console.log('access_token found:', !!access_token);
+        const fragment = url.includes('#')
+          ? url.split('#')[1]
+          : url.split('?')[1] ?? '';
+        const params = new URLSearchParams(fragment);
+        const access_token  = params.get('access_token');
+        const refresh_token = params.get('refresh_token');
+
+        console.log('Got access_token:', !!access_token);
+
         if (access_token) {
-          await supabase.auth.setSession({ access_token, refresh_token: refresh_token ?? '' });
+          const { error: sessionError } = await supabase.auth.setSession({
+            access_token,
+            refresh_token: refresh_token ?? '',
+          });
+          if (sessionError) throw sessionError;
+        } else {
+          Alert.alert('Sign-In Failed', 'No token received. Please try again.');
         }
+      } else if (result.type === 'cancel') {
+        console.log('User cancelled');
       }
+
     } catch (err) {
-      Alert.alert('Error', err.message);
+      console.error('Sign-in error:', err.message);
+      Alert.alert('Sign-In Failed', err.message || 'Please try again.');
     } finally {
       setLoading(false);
     }
@@ -72,15 +99,20 @@ export default function LoginScreen() {
       <View style={[styles.decoratorCircle, styles.decorator1]} pointerEvents="none" />
       <View style={[styles.decoratorCircle, styles.decorator2]} pointerEvents="none" />
       <View style={[styles.decoratorCircle, styles.decorator3]} pointerEvents="none" />
+
       <View style={styles.mainContent}>
         <View style={styles.headerSection}>
           <CustomAppLogo />
           <Text style={styles.brandName}>QuizApp</Text>
           <Text style={styles.brandTagline}>Master new topics, one challenge at a time.</Text>
         </View>
+
         <View style={styles.authCard}>
           <Text style={styles.welcomeText}>Welcome</Text>
-          <Text style={styles.subText}>Sign in to save your progress and compete on the leaderboard.</Text>
+          <Text style={styles.subText}>
+            Sign in to save your progress and compete on the leaderboard.
+          </Text>
+
           <TouchableOpacity
             style={[styles.googleButton, loading && styles.disabled]}
             onPress={handleGoogleSignIn}
@@ -96,6 +128,7 @@ export default function LoginScreen() {
             </Text>
           </TouchableOpacity>
         </View>
+
         <Text style={styles.footerNote}>Secure authentication powered by Google</Text>
       </View>
     </View>
@@ -105,7 +138,7 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0F111A', alignItems: 'center', justifyContent: 'center' },
   mainContent: { width: '100%', maxWidth: 360, paddingHorizontal: 24, alignItems: 'center', zIndex: 10 },
-  decoratorCircle: { position: 'absolute', borderRadius: 999, opacity: 0.12, zIndex: 0 },
+  decoratorCircle: { position: 'absolute', borderRadius: 999, opacity: 0.12 },
   decorator1: { width: width * 0.8, height: width * 0.8, backgroundColor: '#6366F1', top: -80, left: -60 },
   decorator2: { width: width * 0.6, height: width * 0.6, backgroundColor: '#F59E0B', bottom: -60, right: -40 },
   decorator3: { width: 120, height: 120, backgroundColor: '#10B981', top: '35%', right: -30 },
@@ -118,7 +151,7 @@ const styles = StyleSheet.create({
   headerSection: { alignItems: 'center', marginBottom: 40 },
   brandName: { fontSize: 36, fontWeight: '900', color: '#FFFFFF', letterSpacing: -0.5, marginBottom: 8 },
   brandTagline: { fontSize: 15, color: '#9CA3AF', textAlign: 'center', paddingHorizontal: 16 },
-  authCard: { width: '100%', backgroundColor: '#161925', borderRadius: 28, paddingVertical: 36, paddingHorizontal: 24, alignItems: 'center', borderWidth: 1, borderColor: '#222533', marginBottom: 0 },
+  authCard: { width: '100%', backgroundColor: '#161925', borderRadius: 28, paddingVertical: 36, paddingHorizontal: 24, alignItems: 'center', borderWidth: 1, borderColor: '#222533' },
   welcomeText: { fontSize: 24, fontWeight: '800', color: '#FFFFFF', marginBottom: 8 },
   subText: { fontSize: 14, color: '#9CA3AF', textAlign: 'center', lineHeight: 20, marginBottom: 32 },
   googleButton: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF', borderRadius: 16, paddingVertical: 14, paddingHorizontal: 20, width: '100%', borderBottomWidth: 3, borderBottomColor: '#E5E7EB' },

@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState } from 'react';
+import { Platform } from 'react-native';
 import { supabase } from '../services/supabase';
 
 export const AuthContext = createContext(null);
@@ -6,9 +7,8 @@ export const AuthContext = createContext(null);
 export function AuthProvider({ children }) {
   const [session, setSession]         = useState(undefined);
   const [currentUser, setCurrentUser] = useState(null);
-  const [profile, setProfile]         = useState(null);
+  const [profile, setProfile]         = useState(undefined);
 
-  // loading = only while we haven't confirmed session yet
   const loading = session === undefined;
 
   async function fetchProfile(userId) {
@@ -18,9 +18,7 @@ export function AuthProvider({ children }) {
         .select('nickname, nickname_updated_at')
         .eq('id', userId)
         .single();
-
       if (error) {
-        // No row found or any error — treat as no nickname
         setProfile({ nickname: '', nickname_updated_at: null });
       } else {
         setProfile(data);
@@ -40,7 +38,6 @@ export function AuthProvider({ children }) {
   }
 
   useEffect(() => {
-    // Safety timeout — 4s max
     const timeout = setTimeout(() => {
       if (session === undefined) setSession(null);
     }, 4000);
@@ -50,13 +47,10 @@ export function AuthProvider({ children }) {
       (_event, newSession) => {
         console.log('auth event:', _event, !!newSession);
         clearTimeout(timeout);
-
         setSession(newSession ?? null);
         setCurrentUser(newSession?.user ?? null);
 
         if (newSession?.user) {
-          // Don't await — let loading resolve immediately
-          // profile loads in background, App.js will re-render
           upsertProfile(newSession.user);
           fetchProfile(newSession.user.id);
         } else {
@@ -65,19 +59,23 @@ export function AuthProvider({ children }) {
       }
     );
 
-    // Check for existing session
-    supabase.auth.getSession()
-      .then(({ data: { session: s } }) => {
-        if (!s) {
-          clearTimeout(timeout);
-          setSession(null);
-        }
-        // if s exists, onAuthStateChange will fire and handle it
-      })
-      .catch(() => {
+    if (Platform.OS === 'web') {
+      // On web: check if URL has OAuth tokens (after Google redirect)
+      // If yes, let onAuthStateChange handle it via detectSessionInUrl
+      // If no tokens in URL, set session null immediately
+      const hash = window.location.hash || window.location.search;
+      const hasTokens = hash.includes('access_token');
+
+      if (!hasTokens) {
         clearTimeout(timeout);
         setSession(null);
-      });
+      }
+      // If hasTokens → Supabase detectSessionInUrl fires onAuthStateChange automatically
+    } else {
+      // Mobile: always start at login
+      clearTimeout(timeout);
+      setSession(null);
+    }
 
     return () => {
       subscription.unsubscribe();
