@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {
   View, Text, TextInput, StyleSheet, TouchableOpacity,
   Dimensions, KeyboardAvoidingView, Platform,
-  Keyboard, TouchableWithoutFeedback, Alert, ActivityIndicator
+  Keyboard, Alert, ActivityIndicator
 } from 'react-native';
 import { supabase } from '../services/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -95,8 +95,7 @@ export default function NicknameScreen() {
       style={styles.wrapper}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <View style={styles.container}>
+      <View style={styles.container} onStartShouldSetResponder={() => { Keyboard.dismiss(); return false; }}>
           <View style={[styles.decorator, styles.dec1]} pointerEvents="none" />
           <View style={[styles.decorator, styles.dec2]} pointerEvents="none" />
 
@@ -151,8 +150,7 @@ export default function NicknameScreen() {
               </Text>
             </View>
           </View>
-        </View>
-      </TouchableWithoutFeedback>
+      </View>
     </KeyboardAvoidingView>
   );
 }
