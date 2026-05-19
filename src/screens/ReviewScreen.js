@@ -1,4 +1,5 @@
 import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { formatCategory } from '../utils/quizHelpers';
 
 // Individual review card per question
@@ -48,6 +49,7 @@ function ReviewCard({ item, index }) {
 }
 
 export default function ReviewScreen({ route, navigation }) {
+  const insets = useSafeAreaInsets();
   const { results } = route.params;
 
   const correctCount = results.filter(r => r.correct).length;
@@ -56,7 +58,7 @@ export default function ReviewScreen({ route, navigation }) {
     <View style={styles.container}>
 
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Text style={styles.backText}>← Back</Text>
         </TouchableOpacity>
@@ -80,6 +82,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0F111A' },
 
   // Header
+  // paddingTop handled by insets inline
   header: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: '#1E293B' },
   backBtn: { marginBottom: 8 },
   backText: { color: '#6366F1', fontSize: 15, fontWeight: '700' },

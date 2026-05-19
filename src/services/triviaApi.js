@@ -2,55 +2,59 @@
 // Endpoint: https://the-trivia-api.com/v2/questions
 // No API key required.
 //
-// Raw API response shape (from example.json):
+// Official API response shape:
 // {
-//   id:               "622a1c347cc59eab6f94fbcc",
-//   question:         { text: "Which of these quotes..." },
-//   correctAnswer:    "\"I have nipples Greg...\"",
-//   incorrectAnswers: ["answer1", "answer2", "answer3"],
-//   category:         "film_and_tv",
-//   difficulty:       "easy" | "medium" | "hard",
-//   type:             "text_choice",
-//   tags:             [...],
-//   regions:          [],
-//   isNiche:          false
+//   id:               string
+//   category:         "music" | "sport_and_leisure" | "film_and_tv" | "arts_and_literature"
+//                     | "history" | "society_and_culture" | "science" | "geography"
+//                     | "food_and_drink" | "general_knowledge"
+//   tags:             string[]
+//   difficulty:       "easy" | "medium" | "hard"
+//   regions:          string[]
+//   isNiche:          boolean
+//   question:         { text: string }
+//   correctAnswer:    string
+//   incorrectAnswers: string[]   (always 3 items)
+//   type:             "text_choice"
 // }
 
 const BASE_URL = 'https://the-trivia-api.com/v2/questions';
 
-// Trivia API category slugs
+// ─── Official category slugs from API docs ────────────────────
 export const CATEGORIES = {
-  'All':         '',
-  'Science':     'science',
-  'History':     'history',
-  'Music':       'music',
-  'Film & TV':   'film_and_tv',
-  'Technology':  'technology',
-  'Geography':   'geography',
-  'Food':        'food_and_drink',
-  'Sports':      'sport_and_leisure',
-  'Arts':        'arts_and_literature',
+  'All':                '',
+  'Music':              'music',
+  'Sport & Leisure':    'sport_and_leisure',
+  'Film & TV':          'film_and_tv',
+  'Arts & Literature':  'arts_and_literature',
+  'History':            'history',
+  'Society & Culture':  'society_and_culture',
+  'Science':            'science',
+  'Geography':          'geography',
+  'Food & Drink':       'food_and_drink',
+  'General Knowledge':  'general_knowledge',
 };
+
+// ─── Official difficulty values from API docs ─────────────────
+export const DIFFICULTIES = ['easy', 'medium', 'hard'];
 
 /**
  * fetchQuestions
- * Fetches questions from The Trivia API.
- *
- * @param {number} limit      - Number of questions (1–50, default 10)
- * @param {string} difficulty - 'easy' | 'medium' | 'hard' (default 'medium')
- * @param {string} category   - category slug or '' for all (default '')
- * @returns {Promise<Array>}  - Raw question array from the API
+ * @param {number} limit      - 1–50, default 10
+ * @param {string} difficulty - 'easy' | 'medium' | 'hard'
+ * @param {string} category   - official slug or '' for all
+ * @returns {Promise<Array>}  - validated question array
  */
 export async function fetchQuestions(limit = 10, difficulty = 'medium', category = '') {
   try {
     const params = new URLSearchParams();
     params.append('limit', String(limit));
 
-    if (difficulty && difficulty !== 'All') {
+    if (difficulty && difficulty !== 'all') {
       params.append('difficulties', difficulty.toLowerCase());
     }
 
-    if (category && category !== 'All' && category !== '') {
+    if (category && category !== '') {
       params.append('categories', category);
     }
 
@@ -69,13 +73,14 @@ export async function fetchQuestions(limit = 10, difficulty = 'medium', category
       throw new Error('Unexpected response format from Trivia API');
     }
 
-    // Validate all required fields are present
+    // Validate required fields per API docs
     const valid = data.filter(q =>
       q.id &&
       q.question?.text &&
       q.correctAnswer &&
       Array.isArray(q.incorrectAnswers) &&
-      q.incorrectAnswers.length === 3
+      q.incorrectAnswers.length === 3 &&
+      q.type === 'text_choice'   // only handle text_choice type
     );
 
     console.log(`Trivia API: ${data.length} fetched, ${valid.length} valid`);
@@ -94,8 +99,7 @@ export async function fetchQuestions(limit = 10, difficulty = 'medium', category
 
 /**
  * integrationTest
- * Fetches 10 questions and logs them to console.
- * Run from a screen to verify the API works.
+ * Fetches 10 questions and logs all fields to console.
  */
 export async function integrationTest() {
   console.log('=== Trivia API Integration Test ===');
@@ -104,9 +108,12 @@ export async function integrationTest() {
     console.log(`✅ Fetched ${questions.length} questions`);
     questions.forEach((q, i) => {
       console.log(`\nQ${i + 1}: ${q.question.text}`);
-      console.log(`   ✓ Correct: ${q.correctAnswer}`);
-      console.log(`   ✗ Wrong:   ${q.incorrectAnswers.join(' | ')}`);
-      console.log(`   Category: ${q.category} | Difficulty: ${q.difficulty}`);
+      console.log(`   category:         ${q.category}`);
+      console.log(`   difficulty:       ${q.difficulty}`);
+      console.log(`   type:             ${q.type}`);
+      console.log(`   isNiche:          ${q.isNiche}`);
+      console.log(`   correctAnswer:    ${q.correctAnswer}`);
+      console.log(`   incorrectAnswers: ${q.incorrectAnswers.join(' | ')}`);
     });
     console.log('\n=== Test PASSED ===');
     return true;

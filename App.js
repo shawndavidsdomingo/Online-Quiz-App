@@ -5,34 +5,62 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { AuthProvider, useAuth } from './src/contexts/AuthContext';
-import LoginScreen     from './src/screens/LoginScreen';
-import NicknameScreen  from './src/screens/NicknameScreen';
+import LoginScreen    from './src/screens/LoginScreen';
+import NicknameScreen from './src/screens/NicknameScreen';
 import DashboardScreen from './src/screens/DashboardScreen';
-import QuizScreen      from './src/screens/QuizScreen';
-import ResultScreen    from './src/screens/ResultScreen';
-import ReviewScreen    from './src/screens/ReviewScreen';
-import HistoryScreen   from './src/screens/HistoryScreen';
+import QuizScreen     from './src/screens/QuizScreen';
+import ResultScreen   from './src/screens/ResultScreen';
+import ReviewScreen   from './src/screens/ReviewScreen';
+import HistoryScreen  from './src/screens/HistoryScreen';
 
 const Stack = createStackNavigator();
 const Tab   = createBottomTabNavigator();
 
-function QuizStack() {
+// ─── Tab screens only: Dashboard + History ──────────────────
+// Quiz, Result, Review are pushed on top via Stack — no tab access
+function AppTabs() {
   return (
-    <Stack.Navigator>
-      <Stack.Screen name="Quiz"   component={QuizScreen} />
-      <Stack.Screen name="Result" component={ResultScreen} />
-      <Stack.Screen name="Review" component={ReviewScreen} />
-    </Stack.Navigator>
+    <Tab.Navigator
+      screenOptions={{
+        headerShown: false,
+        tabBarStyle: { backgroundColor: '#161925', borderTopColor: '#222533' },
+        tabBarActiveTintColor: '#6366F1',
+        tabBarInactiveTintColor: '#4B5563',
+      }}
+    >
+      <Tab.Screen
+        name="Dashboard"
+        component={DashboardScreen}
+        options={{ tabBarLabel: 'Home', tabBarIcon: () => null }}
+      />
+      <Tab.Screen
+        name="History"
+        component={HistoryScreen}
+        options={{ tabBarLabel: 'History', tabBarIcon: () => null }}
+      />
+    </Tab.Navigator>
   );
 }
 
-function AppTabs() {
+// ─── Main app stack: tabs + quiz flow on top ─────────────────
+// Quiz screens are pushed over the tabs — tab bar disappears
+// during quiz, result, and review. User can only reach Quiz via
+// Dashboard "Start Quiz" button.
+function AppStack() {
   return (
-    <Tab.Navigator>
-      <Tab.Screen name="Dashboard" component={DashboardScreen} />
-      <Tab.Screen name="QuizTab"   component={QuizStack} options={{ title: 'Quiz' }} />
-      <Tab.Screen name="History"   component={HistoryScreen} />
-    </Tab.Navigator>
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      {/* Tabs sit at the bottom of the stack */}
+      <Stack.Screen name="Tabs" component={AppTabs} />
+
+      {/* Quiz flow — pushed on top, hides tab bar completely */}
+      <Stack.Screen
+        name="Quiz"
+        component={QuizScreen}
+        options={{ gestureEnabled: false }} // disable swipe-back during quiz
+      />
+      <Stack.Screen name="Result"   component={ResultScreen} />
+      <Stack.Screen name="Review"   component={ReviewScreen} />
+    </Stack.Navigator>
   );
 }
 
@@ -47,7 +75,6 @@ function RootNavigator() {
     );
   }
 
-  // No session → Login
   if (!session) {
     return (
       <NavigationContainer>
@@ -58,10 +85,7 @@ function RootNavigator() {
     );
   }
 
-  // Has session — check nickname
-  // null profile OR empty nickname → NicknameScreen
   const hasNickname = profile?.nickname && profile.nickname.trim() !== '';
-
   if (!hasNickname) {
     return (
       <NavigationContainer>
@@ -72,10 +96,9 @@ function RootNavigator() {
     );
   }
 
-  // Session + nickname → Main app
   return (
     <NavigationContainer>
-      <AppTabs />
+      <AppStack />
     </NavigationContainer>
   );
 }
