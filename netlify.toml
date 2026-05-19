@@ -1,9 +1,10 @@
 [build]
-  command = "npx expo export -p web"
+  command = "npm install && npx expo export -p web"
   publish = "dist"
 
 [build.environment]
-  NODE_VERSION = "18"
+  NODE_VERSION = "20"
+  NODE_OPTIONS = "--max-old-space-size=4096"
 
 [[redirects]]
   from = "/*"
