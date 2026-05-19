@@ -12,7 +12,7 @@ const { width } = Dimensions.get('window');
 
 export default function DashboardScreen({ navigation }) {
   const insets = useSafeAreaInsets();
-  const { profile, signOut, currentUser }   = useAuth();
+  const { profile, currentUser }            = useAuth();
   const [selectedCategory, setCategory]     = useState('All');
   const [selectedDifficulty, setDifficulty] = useState('medium');
   const [stats, setStats]                   = useState({ total: 0, avg: 0 });
@@ -23,7 +23,7 @@ export default function DashboardScreen({ navigation }) {
   const categoryNames = Object.keys(CATEGORIES);
 
   const fetchStats = useCallback(async (isRefresh = false) => {
-    if (!currentUser) return;
+    if (!currentUser?.id) return;
     try {
       if (isRefresh) setRefreshing(true);
       else setLoadingStats(true);
@@ -47,15 +47,21 @@ export default function DashboardScreen({ navigation }) {
       setLoadingStats(false);
       setRefreshing(false);
     }
-  }, [currentUser]);
+  }, [currentUser?.id]);
 
-  useEffect(() => { fetchStats(); }, [fetchStats]);
+  // Re-run whenever currentUser becomes available (fixes infinite loading
+  // that occurred when currentUser was null on the first render)
+  useEffect(() => {
+    if (currentUser?.id) {
+      fetchStats();
+    } else {
+      // No user yet — stop the spinner so it doesn't hang
+      setLoadingStats(false);
+    }
+  }, [currentUser?.id, fetchStats]);
 
   const handleStartQuiz = () => {
     const categorySlug = CATEGORIES[selectedCategory] ?? '';
-    console.log('Starting quiz:', { category: categorySlug, difficulty: selectedDifficulty });
-
-    // Navigate directly to QuizScreen — avoids nested navigator param issue
     navigation.navigate('Quiz', {
       category:   categorySlug,
       difficulty: selectedDifficulty,
@@ -85,11 +91,10 @@ export default function DashboardScreen({ navigation }) {
         <View style={styles.header}>
           <View>
             <Text style={styles.greeting}>Welcome back,</Text>
-            <Text style={styles.nickname}>{profile?.nickname || 'Player'} 👾</Text>
+            <Text style={styles.nickname}>
+              {profile?.nickname?.trim() || currentUser?.email?.split('@')[0] || 'Player'} 👾
+            </Text>
           </View>
-          <TouchableOpacity style={styles.signOutBtn} onPress={signOut}>
-            <Text style={styles.signOutText}>Sign Out</Text>
-          </TouchableOpacity>
         </View>
 
         {/* Stats */}
@@ -148,7 +153,6 @@ export default function DashboardScreen({ navigation }) {
             ))}
           </View>
 
-          {/* Selected config preview */}
           <View style={styles.previewRow}>
             <Text style={styles.previewText}>
               📋 {selectedCategory} · {selectedDifficulty.charAt(0).toUpperCase() + selectedDifficulty.slice(1)}
@@ -176,8 +180,6 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
   greeting: { fontSize: 14, color: '#9CA3AF', fontWeight: '600' },
   nickname: { fontSize: 26, fontWeight: '900', color: '#FFFFFF', marginTop: 2 },
-  signOutBtn: { backgroundColor: '#1E293B', paddingVertical: 8, paddingHorizontal: 16, borderRadius: 10, borderWidth: 1, borderColor: '#334155' },
-  signOutText: { color: '#94A3B8', fontSize: 13, fontWeight: '600' },
 
   statsRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 },
   statCard: { backgroundColor: '#161925', width: '47%', borderRadius: 20, paddingVertical: 20, alignItems: 'center', borderWidth: 1, borderColor: '#222533' },

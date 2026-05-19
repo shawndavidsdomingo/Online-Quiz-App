@@ -1,93 +1,77 @@
 import { createContext, useContext, useEffect, useState } from 'react';
-import { Platform } from 'react-native';
 import { supabase } from '../services/supabase';
 
 export const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [session, setSession]         = useState(undefined);
+  const [session, setSession]         = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
-  const [profile, setProfile]         = useState(undefined);
+  const [profile, setProfile]         = useState(null);
+  const [authReady, setAuthReady]     = useState(false);
 
-  const loading = session === undefined;
+  const loading = !authReady;
 
   async function fetchProfile(userId) {
     try {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('profiles')
-        .select('nickname, nickname_updated_at')
+        .select('nickname, nickname_updated_at, email')
         .eq('id', userId)
-        .single();
-      if (error) {
-        setProfile({ nickname: '', nickname_updated_at: null });
-      } else {
-        setProfile(data);
-      }
+        .maybeSingle();
+      setProfile(data ?? { nickname: '', nickname_updated_at: null, email: '' });
     } catch {
-      setProfile({ nickname: '', nickname_updated_at: null });
+      setProfile({ nickname: '', nickname_updated_at: null, email: '' });
     }
   }
 
-  async function upsertProfile(user) {
+  async function ensureAndFetchProfile(user) {
     try {
       await supabase.from('profiles').upsert(
-        { id: user.id, email: user.email },
+        { id: user.id, email: user.email, nickname: '', nickname_updated_at: null },
         { onConflict: 'id', ignoreDuplicates: true }
       );
-    } catch {}
+    } catch (err) {
+      console.warn('ensureProfile warning:', err.message);
+    }
+    // Always fetch even if upsert had an issue — row likely already exists
+    await fetchProfile(user.id);
   }
 
   useEffect(() => {
-    const timeout = setTimeout(() => {
-      if (session === undefined) setSession(null);
-    }, 4000);
-
-    // Register listener first
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, newSession) => {
-        console.log('auth event:', _event, !!newSession);
-        clearTimeout(timeout);
-        setSession(newSession ?? null);
-        setCurrentUser(newSession?.user ?? null);
+        console.log('auth:', _event, !!newSession);
 
-        if (newSession?.user) {
-          upsertProfile(newSession.user);
-          fetchProfile(newSession.user.id);
-        } else {
-          setProfile(null);
-        }
+        const user = newSession?.user ?? null;
+        setSession(newSession ?? null);
+        setCurrentUser(user);
+
+        if (!user) setProfile(null);
+
+        // ✅ Unblock loading IMMEDIATELY — don't await profile fetch.
+        // Clock skew or slow network on profile calls must never hang the app.
+        setAuthReady(true);
+
+        // Fire-and-forget profile fetch after state is settled
+        if (user) ensureAndFetchProfile(user);
       }
     );
 
-    if (Platform.OS === 'web') {
-      // On web: check if URL has OAuth tokens (after Google redirect)
-      // If yes, let onAuthStateChange handle it via detectSessionInUrl
-      // If no tokens in URL, set session null immediately
-      const hash = window.location.hash || window.location.search;
-      const hasTokens = hash.includes('access_token');
-
-      if (!hasTokens) {
-        clearTimeout(timeout);
-        setSession(null);
-      }
-      // If hasTokens → Supabase detectSessionInUrl fires onAuthStateChange automatically
-    } else {
-      // Mobile: always start at login
-      clearTimeout(timeout);
-      setSession(null);
-    }
+    // Hard fallback — in case onAuthStateChange never fires
+    const fallback = setTimeout(() => setAuthReady(true), 6000);
 
     return () => {
       subscription.unsubscribe();
-      clearTimeout(timeout);
+      clearTimeout(fallback);
     };
   }, []);
 
   async function signOut() {
-    await supabase.auth.signOut();
+    // Clear state first so UI transitions immediately
     setSession(null);
     setCurrentUser(null);
     setProfile(null);
+    await supabase.auth.signOut();
   }
 
   async function refreshProfile() {
@@ -95,9 +79,7 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{
-      session, currentUser, profile, loading, signOut, refreshProfile,
-    }}>
+    <AuthContext.Provider value={{ session, currentUser, profile, loading, signOut, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );

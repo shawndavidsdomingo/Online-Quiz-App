@@ -1,14 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, FlatList,
-  TouchableOpacity, ActivityIndicator, RefreshControl
+  ActivityIndicator, RefreshControl
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../services/supabase';
 import { formatCategory } from '../utils/quizHelpers';
 
-// ─── History Item Card ────────────────────────────────────────
 function HistoryCard({ item }) {
   const percentage = Math.round((item.score / item.total) * 100);
 
@@ -48,7 +47,6 @@ function HistoryCard({ item }) {
           <Text style={styles.cardDate}>{formatDate(item.completed_at)}</Text>
         </View>
       </View>
-
       <View style={styles.cardRight}>
         <Text style={[styles.cardScore, { color: getColor() }]}>
           {item.score}<Text style={styles.cardTotal}>/{item.total}</Text>
@@ -59,29 +57,26 @@ function HistoryCard({ item }) {
   );
 }
 
-// ─── Empty State ──────────────────────────────────────────────
 function EmptyState() {
   return (
     <View style={styles.empty}>
       <Text style={styles.emptyIcon}>📭</Text>
       <Text style={styles.emptyTitle}>No history yet!</Text>
-      <Text style={styles.emptyText}>
-        Complete a quiz to see your results here.
-      </Text>
+      <Text style={styles.emptyText}>Complete a quiz to see your results here.</Text>
     </View>
   );
 }
 
-// ─── HistoryScreen ────────────────────────────────────────────
 export default function HistoryScreen() {
   const insets = useSafeAreaInsets();
   const { currentUser } = useAuth();
-  const [history, setHistory]     = useState([]);
-  const [loading, setLoading]     = useState(true);
+  const [history, setHistory]       = useState([]);
+  const [loading, setLoading]       = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [error, setError]         = useState(null);
+  const [error, setError]           = useState(null);
 
   const fetchHistory = useCallback(async (isRefresh = false) => {
+    if (!currentUser?.id) return;
     try {
       if (isRefresh) setRefreshing(true);
       else setLoading(true);
@@ -95,7 +90,6 @@ export default function HistoryScreen() {
 
       if (dbError) throw dbError;
       setHistory(data || []);
-
     } catch (err) {
       console.error('fetchHistory error:', err.message);
       setError('Could not load history. Pull down to retry.');
@@ -103,13 +97,18 @@ export default function HistoryScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [currentUser]);
+  }, [currentUser?.id]);
 
+  // Re-run when currentUser becomes available — fixes infinite spinner
+  // that happened when currentUser was null on the initial render
   useEffect(() => {
-    if (currentUser) fetchHistory();
-  }, [currentUser]);
+    if (currentUser?.id) {
+      fetchHistory();
+    } else {
+      setLoading(false);
+    }
+  }, [currentUser?.id, fetchHistory]);
 
-  // ── Summary stats ──────────────────────────────────────────
   const totalPlayed = history.length;
   const avgScore = totalPlayed > 0
     ? Math.round(history.reduce((sum, h) => sum + (h.score / h.total) * 100, 0) / totalPlayed)
@@ -118,7 +117,6 @@ export default function HistoryScreen() {
     ? Math.max(...history.map(h => Math.round((h.score / h.total) * 100)))
     : 0;
 
-  // ── Loading ────────────────────────────────────────────────
   if (loading) {
     return (
       <View style={styles.centered}>
@@ -130,21 +128,17 @@ export default function HistoryScreen() {
 
   return (
     <View style={styles.container}>
-
-      {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
         <Text style={styles.title}>Quiz History</Text>
         <Text style={styles.subtitle}>{totalPlayed} quiz{totalPlayed !== 1 ? 'zes' : ''} played</Text>
       </View>
 
-      {/* Error banner */}
       {error && (
         <View style={styles.errorBanner}>
           <Text style={styles.errorText}>⚠️ {error}</Text>
         </View>
       )}
 
-      {/* Summary row — only shown if has history */}
       {totalPlayed > 0 && (
         <View style={styles.summaryRow}>
           <View style={styles.summaryBox}>
@@ -162,15 +156,11 @@ export default function HistoryScreen() {
         </View>
       )}
 
-      {/* List */}
       <FlatList
         data={history}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => <HistoryCard item={item} />}
-        contentContainerStyle={[
-          styles.list,
-          history.length === 0 && styles.listEmpty,
-        ]}
+        contentContainerStyle={[styles.list, history.length === 0 && styles.listEmpty]}
         ListEmptyComponent={<EmptyState />}
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -191,38 +181,23 @@ const styles = StyleSheet.create({
   centered: { flex: 1, backgroundColor: '#0F111A', alignItems: 'center', justifyContent: 'center' },
   loadingText: { color: '#6B7280', fontSize: 14, marginTop: 12 },
 
-  // Header
   header: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: '#1E293B' },
   title: { fontSize: 26, fontWeight: '900', color: '#FFFFFF', marginBottom: 2 },
   subtitle: { fontSize: 13, color: '#6B7280', fontWeight: '600' },
 
-  // Error
   errorBanner: { backgroundColor: 'rgba(239,68,68,0.1)', paddingVertical: 10, paddingHorizontal: 20, borderBottomWidth: 1, borderBottomColor: 'rgba(239,68,68,0.2)' },
   errorText: { color: '#EF4444', fontSize: 13, fontWeight: '600' },
 
-  // Summary
   summaryRow: { flexDirection: 'row', backgroundColor: '#161925', marginHorizontal: 16, marginTop: 16, borderRadius: 16, borderWidth: 1, borderColor: '#222533' },
   summaryBox: { flex: 1, alignItems: 'center', paddingVertical: 14 },
   summaryDivider: { borderLeftWidth: 1, borderRightWidth: 1, borderColor: '#222533' },
   summaryValue: { fontSize: 20, fontWeight: '900', color: '#FFFFFF', marginBottom: 2 },
   summaryLabel: { fontSize: 11, color: '#6B7280', fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.4 },
 
-  // List
   list: { padding: 16, paddingBottom: 40 },
   listEmpty: { flex: 1 },
 
-  // Card
-  card: {
-    backgroundColor: '#161925',
-    borderRadius: 18,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#222533',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
+  card: { backgroundColor: '#161925', borderRadius: 18, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: '#222533', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   cardLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
   cardStars: { fontSize: 24 },
   cardCategory: { fontSize: 15, fontWeight: '700', color: '#F1F5F9', marginBottom: 2 },
@@ -233,7 +208,6 @@ const styles = StyleSheet.create({
   cardTotal: { fontSize: 16, fontWeight: '600', color: '#4B5563' },
   cardPct: { fontSize: 13, fontWeight: '700' },
 
-  // Empty
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 80 },
   emptyIcon: { fontSize: 56, marginBottom: 16 },
   emptyTitle: { fontSize: 22, fontWeight: '800', color: '#FFFFFF', marginBottom: 8 },
