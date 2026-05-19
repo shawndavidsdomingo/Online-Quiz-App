@@ -1,77 +1,128 @@
-import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TouchableOpacity, 
-  ScrollView, 
-  Dimensions 
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  View, Text, StyleSheet, TouchableOpacity,
+  ScrollView, Dimensions, ActivityIndicator, RefreshControl
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../services/supabase';
+import { CATEGORIES } from '../services/triviaApi';
 
 const { width } = Dimensions.get('window');
 
-export default function DashboardScreen({ route, navigation }) {
-  // Grab the passed nickname, fallback to a placeholder if undefined
-  const userNickname = route.params?.nickname || "QuizMaster👾"; 
-  
-  const totalQuizzes = 12;
-  const avgScore = 84;
+export default function DashboardScreen({ navigation }) {
+  const insets = useSafeAreaInsets();
+  const { profile, signOut, currentUser }   = useAuth();
+  const [selectedCategory, setCategory]     = useState('All');
+  const [selectedDifficulty, setDifficulty] = useState('medium');
+  const [stats, setStats]                   = useState({ total: 0, avg: 0 });
+  const [loadingStats, setLoadingStats]     = useState(true);
+  const [refreshing, setRefreshing]         = useState(false);
 
-  // Category and Difficulty Filter States
-  const [selectedCategory, setSelectedCategory] = useState('All');
-  const [selectedDifficulty, setSelectedDifficulty] = useState('Medium');
+  const difficulties  = ['easy', 'medium', 'hard'];
+  const categoryNames = Object.keys(CATEGORIES);
 
-  const categories = ['All', 'Tech', 'Science', 'History', 'Pop Culture'];
-  const difficulties = ['Easy', 'Medium', 'Hard'];
+  const fetchStats = useCallback(async (isRefresh = false) => {
+    if (!currentUser) return;
+    try {
+      if (isRefresh) setRefreshing(true);
+      else setLoadingStats(true);
+
+      const { data, error } = await supabase
+        .from('score_history')
+        .select('score, total')
+        .eq('user_id', currentUser.id);
+
+      if (error) throw error;
+
+      const total = data?.length || 0;
+      const avg   = total > 0
+        ? Math.round(data.reduce((s, r) => s + (r.score / r.total) * 100, 0) / total)
+        : 0;
+
+      setStats({ total, avg });
+    } catch (err) {
+      console.warn('fetchStats error:', err.message);
+    } finally {
+      setLoadingStats(false);
+      setRefreshing(false);
+    }
+  }, [currentUser]);
+
+  useEffect(() => { fetchStats(); }, [fetchStats]);
 
   const handleStartQuiz = () => {
-    console.log('Starting quiz with filters:', { selectedCategory, selectedDifficulty });
-    // Future PR-04 routing hook:
-    // navigation.navigate('Quiz', { category: selectedCategory, difficulty: selectedDifficulty });
+    const categorySlug = CATEGORIES[selectedCategory] ?? '';
+    console.log('Starting quiz:', { category: categorySlug, difficulty: selectedDifficulty });
+
+    // Navigate directly to QuizScreen — avoids nested navigator param issue
+    navigation.navigate('Quiz', {
+      category:   categorySlug,
+      difficulty: selectedDifficulty,
+      timestamp:  Date.now(),
+    });
   };
 
   return (
-    <ScrollView style={styles.scrollWrapper} contentContainerStyle={styles.container}>
-      
-      {/* Playful Background Decorative Shapes */}
-      <View style={[styles.decoratorCircle, styles.decorator1]} />
-      <View style={[styles.decoratorCircle, styles.decorator2]} />
+    <ScrollView
+      style={styles.scrollWrapper}
+      contentContainerStyle={[styles.container, { paddingTop: insets.top + 20 }]}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={() => fetchStats(true)}
+          tintColor="#6366F1"
+          colors={['#6366F1']}
+        />
+      }
+    >
+      <View style={[styles.decorator, styles.dec1]} />
+      <View style={[styles.decorator, styles.dec2]} />
 
-      <View style={styles.mainContent}>
-        
-        {/* Playful Greeting Header */}
-        <View style={styles.headerSection}>
-          <Text style={styles.greetingText}>Welcome back,</Text>
-          <Text style={styles.nicknameText}>{userNickname}</Text>
+      <View style={styles.content}>
+
+        {/* Header */}
+        <View style={styles.header}>
+          <View>
+            <Text style={styles.greeting}>Welcome back,</Text>
+            <Text style={styles.nickname}>{profile?.nickname || 'Player'} 👾</Text>
+          </View>
+          <TouchableOpacity style={styles.signOutBtn} onPress={signOut}>
+            <Text style={styles.signOutText}>Sign Out</Text>
+          </TouchableOpacity>
         </View>
 
-        {/* Stats Grid Dashboard Cards */}
-        <View style={styles.statsGrid}>
+        {/* Stats */}
+        <View style={styles.statsRow}>
           <View style={styles.statCard}>
             <Text style={styles.statIcon}>🏆</Text>
-            <Text style={styles.statValue}>{totalQuizzes}</Text>
-            <Text style={styles.statLabel}>Quizzes Played</Text>
+            {loadingStats
+              ? <ActivityIndicator size="small" color="#6366F1" />
+              : <Text style={styles.statValue}>{stats.total}</Text>
+            }
+            <Text style={styles.statLabel}>Quizzes</Text>
           </View>
-          
           <View style={styles.statCard}>
             <Text style={styles.statIcon}>🎯</Text>
-            <Text style={styles.statValue}>{avgScore}%</Text>
+            {loadingStats
+              ? <ActivityIndicator size="small" color="#6366F1" />
+              : <Text style={styles.statValue}>{stats.avg}%</Text>
+            }
             <Text style={styles.statLabel}>Avg Score</Text>
           </View>
         </View>
 
-        {/* Configuration Card / Selectors */}
+        {/* Config Card */}
         <View style={styles.configCard}>
-          <Text style={styles.cardTitle}>Configure Arena</Text>
-          
-          {/* Category Selector Line */}
-          <Text style={styles.filterLabel}>Select Category</Text>
-          <View style={styles.pillContainer}>
-            {categories.map((cat) => (
+          <Text style={styles.cardTitle}>Configure Quiz</Text>
+
+          <Text style={styles.filterLabel}>Category</Text>
+          <View style={styles.pillRow}>
+            {categoryNames.map((cat) => (
               <TouchableOpacity
                 key={cat}
                 style={[styles.pill, selectedCategory === cat && styles.pillActive]}
-                onPress={() => setSelectedCategory(cat)}
+                onPress={() => setCategory(cat)}
                 activeOpacity={0.8}
               >
                 <Text style={[styles.pillText, selectedCategory === cat && styles.pillTextActive]}>
@@ -81,30 +132,31 @@ export default function DashboardScreen({ route, navigation }) {
             ))}
           </View>
 
-          {/* Difficulty Selector Line */}
-          <Text style={styles.filterLabel}>Select Difficulty</Text>
-          <View style={styles.pillContainer}>
+          <Text style={styles.filterLabel}>Difficulty</Text>
+          <View style={styles.pillRow}>
             {difficulties.map((diff) => (
               <TouchableOpacity
                 key={diff}
                 style={[styles.pill, selectedDifficulty === diff && styles.pillActive]}
-                onPress={() => setSelectedDifficulty(diff)}
+                onPress={() => setDifficulty(diff)}
                 activeOpacity={0.8}
               >
                 <Text style={[styles.pillText, selectedDifficulty === diff && styles.pillTextActive]}>
-                  {diff}
+                  {diff.charAt(0).toUpperCase() + diff.slice(1)}
                 </Text>
               </TouchableOpacity>
             ))}
           </View>
 
-          {/* Heavy Tactile Start Action Button */}
-          <TouchableOpacity
-            style={styles.startButton}
-            onPress={handleStartQuiz}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.startButtonText}>🚀 Enter Quiz Arena</Text>
+          {/* Selected config preview */}
+          <View style={styles.previewRow}>
+            <Text style={styles.previewText}>
+              📋 {selectedCategory} · {selectedDifficulty.charAt(0).toUpperCase() + selectedDifficulty.slice(1)}
+            </Text>
+          </View>
+
+          <TouchableOpacity style={styles.startBtn} onPress={handleStartQuiz} activeOpacity={0.85}>
+            <Text style={styles.startBtnText}>🚀 Start Quiz</Text>
           </TouchableOpacity>
         </View>
 
@@ -114,171 +166,37 @@ export default function DashboardScreen({ route, navigation }) {
 }
 
 const styles = StyleSheet.create({
-  scrollWrapper: {
-    flex: 1,
-    backgroundColor: '#0F111A', // Consistent Midnight base
-  },
-  container: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 40,
-  },
-  mainContent: {
-    width: '100%',
-    maxWidth: 360,
-    paddingHorizontal: 24,
-    zIndex: 10,
-  },
+  scrollWrapper: { flex: 1, backgroundColor: '#0F111A' },
+  container: { alignItems: 'center', paddingVertical: 40 },
+  content: { width: '100%', maxWidth: 400, paddingHorizontal: 24, zIndex: 10 },
+  decorator: { position: 'absolute', borderRadius: 999, opacity: 0.1, zIndex: 0, pointerEvents: 'none' },
+  dec1: { width: width * 0.8, height: width * 0.8, backgroundColor: '#6366F1', top: -40, left: -40 },
+  dec2: { width: width * 0.8, height: width * 0.8, backgroundColor: '#F59E0B', bottom: 20, right: -60 },
 
-  // --- BACKGROUND GLOW ORBS ---
-  decoratorCircle: {
-    position: 'absolute',
-    borderRadius: 999,
-    opacity: 0.1,
-  },
-  decorator1: {
-    width: width * 0.8,
-    height: width * 0.8,
-    backgroundColor: '#6366F1', // Playful Indigo
-    top: -40,
-    left: -40,
-  },
-  decorator2: {
-    width: width * 0.8,
-    height: width * 0.8,
-    backgroundColor: '#F59E0B', // Vibrant Amber
-    bottom: 20,
-    right: -60,
-  },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
+  greeting: { fontSize: 14, color: '#9CA3AF', fontWeight: '600' },
+  nickname: { fontSize: 26, fontWeight: '900', color: '#FFFFFF', marginTop: 2 },
+  signOutBtn: { backgroundColor: '#1E293B', paddingVertical: 8, paddingHorizontal: 16, borderRadius: 10, borderWidth: 1, borderColor: '#334155' },
+  signOutText: { color: '#94A3B8', fontSize: 13, fontWeight: '600' },
 
-  // --- GREETING HEADER ---
-  headerSection: {
-    width: '100%',
-    marginBottom: 28,
-  },
-  greetingText: {
-    fontSize: 16,
-    color: '#9CA3AF',
-    fontWeight: '600',
-  },
-  nicknameText: {
-    fontSize: 32,
-    fontWeight: '900',
-    color: '#FFFFFF',
-    letterSpacing: -0.5,
-    marginTop: 4,
-  },
+  statsRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 },
+  statCard: { backgroundColor: '#161925', width: '47%', borderRadius: 20, paddingVertical: 20, alignItems: 'center', borderWidth: 1, borderColor: '#222533' },
+  statIcon: { fontSize: 24, marginBottom: 8 },
+  statValue: { fontSize: 22, fontWeight: '800', color: '#FFFFFF', marginBottom: 4 },
+  statLabel: { fontSize: 12, color: '#6B7280', fontWeight: '600' },
 
-  // --- STATS GRID ---
-  statsGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
-    marginBottom: 24,
-  },
-  statCard: {
-    backgroundColor: '#161925',
-    width: '47%',
-    borderRadius: 20,
-    paddingVertical: 20,
-    paddingHorizontal: 16,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#222533',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  statIcon: {
-    fontSize: 24,
-    marginBottom: 8,
-  },
-  statValue: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: '#6B7280',
-    fontWeight: '600',
-  },
+  configCard: { backgroundColor: '#161925', borderRadius: 24, padding: 24, borderWidth: 1, borderColor: '#222533' },
+  cardTitle: { fontSize: 18, fontWeight: '800', color: '#FFFFFF', marginBottom: 20 },
+  filterLabel: { color: '#9CA3AF', fontSize: 12, fontWeight: '700', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5 },
+  pillRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 20 },
+  pill: { backgroundColor: '#0F111A', paddingVertical: 8, paddingHorizontal: 14, borderRadius: 99, borderWidth: 2, borderColor: '#2D3142' },
+  pillActive: { borderColor: '#6366F1', backgroundColor: 'rgba(99,102,241,0.15)' },
+  pillText: { color: '#9CA3AF', fontSize: 13, fontWeight: '600' },
+  pillTextActive: { color: '#818CF8', fontWeight: '700' },
 
-  // --- CONFIGURATION MANAGEMENT CARD ---
-  configCard: {
-    backgroundColor: '#161925',
-    borderRadius: 24,
-    padding: 24,
-    width: '100%',
-    borderWidth: 1,
-    borderColor: '#222533',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
-    elevation: 4,
-  },
-  cardTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    marginBottom: 20,
-    letterSpacing: -0.3,
-  },
-  filterLabel: {
-    color: '#9CA3AF',
-    fontSize: 13,
-    fontWeight: '700',
-    marginBottom: 10,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  pillContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 20,
-  },
-  pill: {
-    backgroundColor: '#0F111A',
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 99,
-    borderWidth: 2,
-    borderColor: '#2D3142',
-  },
-  pillActive: {
-    borderColor: '#6366F1',
-    backgroundColor: 'rgba(99, 102, 241, 0.15)',
-  },
-  pillText: {
-    color: '#9CA3AF',
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  pillTextActive: {
-    color: '#818CF8',
-    fontWeight: '700',
-  },
+  previewRow: { backgroundColor: '#0F111A', borderRadius: 12, padding: 12, marginBottom: 16, borderWidth: 1, borderColor: '#2D3142' },
+  previewText: { color: '#6B7280', fontSize: 13, fontWeight: '600', textAlign: 'center' },
 
-  // --- LAUNCH ACTION BUTTON ---
-  startButton: {
-    backgroundColor: '#10B981', // Vibrant Emerald green for action triggers
-    borderRadius: 16,
-    paddingVertical: 16,
-    width: '100%',
-    alignItems: 'center',
-    marginTop: 10,
-    borderBottomWidth: 4,
-    borderBottomColor: '#059669', // Deep crisp edge baseline
-  },
-  startButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '800',
-    letterSpacing: 0.5,
-  },
+  startBtn: { backgroundColor: '#10B981', borderRadius: 16, paddingVertical: 16, alignItems: 'center', borderBottomWidth: 4, borderBottomColor: '#059669' },
+  startBtnText: { color: '#FFFFFF', fontSize: 16, fontWeight: '800' },
 });

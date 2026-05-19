@@ -105,7 +105,7 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0F111A', alignItems: 'center', justifyContent: 'center' },
   mainContent: { width: '100%', maxWidth: 360, paddingHorizontal: 24, alignItems: 'center', zIndex: 10 },
-  decoratorCircle: { position: 'absolute', borderRadius: 999, opacity: 0.12 },
+  decoratorCircle: { position: 'absolute', borderRadius: 999, opacity: 0.12, zIndex: 0, pointerEvents: 'none' },
   decorator1: { width: width * 0.8, height: width * 0.8, backgroundColor: '#6366F1', top: -80, left: -60 },
   decorator2: { width: width * 0.6, height: width * 0.6, backgroundColor: '#F59E0B', bottom: -60, right: -40 },
   decorator3: { width: 120, height: 120, backgroundColor: '#10B981', top: '35%', right: -30 },
