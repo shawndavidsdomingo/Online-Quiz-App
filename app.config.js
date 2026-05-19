@@ -9,6 +9,12 @@ export default {
     userInterfaceStyle: 'light',
     newArchEnabled: true,
     scheme: 'quiz-app',
+    updates: {
+      url: 'https://u.expo.dev/e1032cad-d8d7-4b6e-86e1-e8680c544b77',
+    },
+    runtimeVersion: {
+      policy: 'appVersion',
+    },
     ios: {
       supportsTablet: true,
       bundleIdentifier: 'com.quizapp.mobile',
