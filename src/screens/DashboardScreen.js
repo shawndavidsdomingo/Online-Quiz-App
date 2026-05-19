@@ -76,8 +76,8 @@ export default function DashboardScreen({ navigation }) {
         />
       }
     >
-      <View style={[styles.decorator, styles.dec1]} />
-      <View style={[styles.decorator, styles.dec2]} />
+      <View style={[styles.decorator, styles.dec1]} pointerEvents="none" />
+      <View style={[styles.decorator, styles.dec2]} pointerEvents="none" />
 
       <View style={styles.content}>
 
@@ -169,7 +169,7 @@ const styles = StyleSheet.create({
   scrollWrapper: { flex: 1, backgroundColor: '#0F111A' },
   container: { alignItems: 'center', paddingVertical: 40 },
   content: { width: '100%', maxWidth: 400, paddingHorizontal: 24, zIndex: 10 },
-  decorator: { position: 'absolute', borderRadius: 999, opacity: 0.1, zIndex: 0, pointerEvents: 'none' },
+  decorator: { position: 'absolute', borderRadius: 999, opacity: 0.1, zIndex: 0 },
   dec1: { width: width * 0.8, height: width * 0.8, backgroundColor: '#6366F1', top: -40, left: -40 },
   dec2: { width: width * 0.8, height: width * 0.8, backgroundColor: '#F59E0B', bottom: 20, right: -60 },
 

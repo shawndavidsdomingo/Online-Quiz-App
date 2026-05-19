@@ -97,8 +97,8 @@ export default function NicknameScreen() {
     >
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <View style={styles.container}>
-          <View style={[styles.decorator, styles.dec1]} />
-          <View style={[styles.decorator, styles.dec2]} />
+          <View style={[styles.decorator, styles.dec1]} pointerEvents="none" />
+          <View style={[styles.decorator, styles.dec2]} pointerEvents="none" />
 
           <View style={styles.content}>
             <View style={styles.header}>
@@ -161,7 +161,7 @@ const styles = StyleSheet.create({
   wrapper: { flex: 1, backgroundColor: '#0F111A' },
   container: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   content: { width: '100%', maxWidth: 360, paddingHorizontal: 24, alignItems: 'center', zIndex: 10 },
-  decorator: { position: 'absolute', borderRadius: 999, opacity: 0.12, zIndex: 0, pointerEvents: 'none' },
+  decorator: { position: 'absolute', borderRadius: 999, opacity: 0.12, zIndex: 0 },
   dec1: { width: width * 0.9, height: width * 0.9, backgroundColor: '#10B981', top: -100, right: -80 },
   dec2: { width: width * 0.7, height: width * 0.7, backgroundColor: '#EC4899', bottom: -80, left: -50 },
 
