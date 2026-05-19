@@ -8,6 +8,7 @@ export default {
     orientation: 'portrait',
     userInterfaceStyle: 'light',
     newArchEnabled: true,
+    scheme: 'quiz-app',
     ios: {
       supportsTablet: true,
       bundleIdentifier: 'com.quizapp.mobile',
@@ -21,7 +22,9 @@ export default {
     extra: {
       supabaseUrl: process.env.SUPABASE_URL,
       supabaseAnonKey: process.env.SUPABASE_ANON_KEY,
+      eas: {
+        projectId: 'cf40a85b-d91b-4781-aeb8-bc5607f8028b',
+      },
     },
-    scheme: 'quiz-app',
   },
 };
